@@ -124,9 +124,15 @@ public class ProviderServlet extends HttpServlet {
         String action = request.getParameter("action");
 
         if ("toggle_status".equals(action)) {
-            Long areaId = Long.parseLong(request.getParameter("areaId").trim());
-            ParkingArea.Status status = ParkingArea.Status.valueOf(request.getParameter("status").toUpperCase().trim());
-            parkingService.toggleAreaStatus(areaId, user.getUserId(), status);
+            String areaIdParam = request.getParameter("areaId");
+            String statusParam = request.getParameter("status");
+            if (areaIdParam != null && statusParam != null) {
+                try {
+                    Long areaId = Long.parseLong(areaIdParam.trim());
+                    ParkingArea.Status status = ParkingArea.Status.valueOf(statusParam.toUpperCase().trim());
+                    parkingService.toggleAreaStatus(areaId, user.getUserId(), status);
+                } catch (Exception ignored) {}
+            }
             response.sendRedirect(request.getContextPath() + "/provider/areas?updated=true");
             return;
         }
@@ -153,8 +159,12 @@ public class ProviderServlet extends HttpServlet {
 
         String error;
         if (areaIdStr != null && !areaIdStr.trim().isEmpty()) {
-            area.setParkingAreaId(Long.parseLong(areaIdStr.trim()));
-            error = parkingService.updateParkingArea(area);
+            try {
+                area.setParkingAreaId(Long.parseLong(areaIdStr.trim()));
+                error = parkingService.updateParkingArea(area);
+            } catch (NumberFormatException e) {
+                error = "Invalid facility ID.";
+            }
         } else {
             error = parkingService.addParkingArea(area);
         }
@@ -197,10 +207,31 @@ public class ProviderServlet extends HttpServlet {
         String action = request.getParameter("action");
         String areaIdStr = request.getParameter("areaId");
 
+        if (areaIdStr == null || areaIdStr.trim().isEmpty()) {
+            request.setAttribute("errorMessage", "Parking facility must be selected.");
+            handleSlotsGet(request, response, user);
+            return;
+        }
+
+        Long areaId;
+        try {
+            areaId = Long.parseLong(areaIdStr.trim());
+        } catch (NumberFormatException e) {
+            request.setAttribute("errorMessage", "Invalid parking facility selection.");
+            handleSlotsGet(request, response, user);
+            return;
+        }
+
         if ("toggle_status".equals(action)) {
-            Long slotId = Long.parseLong(request.getParameter("slotId").trim());
-            ParkingSlot.Status status = ParkingSlot.Status.valueOf(request.getParameter("status").toUpperCase().trim());
-            parkingService.toggleSlotStatus(slotId, user.getUserId(), status);
+            String slotIdParam = request.getParameter("slotId");
+            String statusParam = request.getParameter("status");
+            if (slotIdParam != null && statusParam != null) {
+                try {
+                    Long slotId = Long.parseLong(slotIdParam.trim());
+                    ParkingSlot.Status status = ParkingSlot.Status.valueOf(statusParam.toUpperCase().trim());
+                    parkingService.toggleSlotStatus(slotId, user.getUserId(), status);
+                } catch (Exception ignored) {}
+            }
             response.sendRedirect(request.getContextPath() + "/provider/slots?areaId=" + areaIdStr + "&updated=true");
             return;
         }
@@ -210,14 +241,18 @@ public class ProviderServlet extends HttpServlet {
         String vehicleType = request.getParameter("vehicleType");
 
         ParkingSlot slot = new ParkingSlot();
-        slot.setParkingAreaId(Long.parseLong(areaIdStr.trim()));
+        slot.setParkingAreaId(areaId);
         slot.setSlotNumber(slotNumber);
         slot.setVehicleType(vehicleType);
 
         String error;
         if (slotIdStr != null && !slotIdStr.trim().isEmpty()) {
-            slot.setSlotId(Long.parseLong(slotIdStr.trim()));
-            error = parkingService.updateSlot(slot, user.getUserId());
+            try {
+                slot.setSlotId(Long.parseLong(slotIdStr.trim()));
+                error = parkingService.updateSlot(slot, user.getUserId());
+            } catch (NumberFormatException e) {
+                error = "Invalid slot ID.";
+            }
         } else {
             error = parkingService.addSlot(slot, user.getUserId());
         }

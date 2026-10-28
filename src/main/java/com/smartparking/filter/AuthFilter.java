@@ -17,7 +17,7 @@ import java.io.IOException;
  * Filter enforcing session-based authentication and role-based access control.
  * Restricts /customer/*, /provider/*, and /admin/* routes to authorized roles.
  */
-@WebFilter(filterName = "AuthFilter", urlPatterns = {"/customer/*", "/provider/*", "/admin/*"})
+@WebFilter(filterName = "AuthFilter", urlPatterns = {"/customer/*", "/provider/*", "/admin/*", "/notifications/*"})
 public class AuthFilter implements Filter {
 
     @Override

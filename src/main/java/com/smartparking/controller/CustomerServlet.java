@@ -121,7 +121,14 @@ public class CustomerServlet extends HttpServlet {
             return;
         }
 
-        Long areaId = Long.parseLong(areaIdStr.trim());
+        Long areaId;
+        try {
+            areaId = Long.parseLong(areaIdStr.trim());
+        } catch (NumberFormatException e) {
+            response.sendRedirect(request.getContextPath() + "/browse");
+            return;
+        }
+
         ParkingArea area = parkingService.getAreaById(areaId);
         if (area == null || !area.isActive()) {
             response.sendRedirect(request.getContextPath() + "/browse");
@@ -163,6 +170,12 @@ public class CustomerServlet extends HttpServlet {
         String endStr = request.getParameter("endTime");
 
         try {
+            if (areaIdStr == null || areaIdStr.trim().isEmpty()) {
+                throw new IllegalArgumentException("Parking facility is required.");
+            }
+            if (slotIdStr == null || slotIdStr.trim().isEmpty()) {
+                throw new IllegalArgumentException("Please select an available parking bay/slot.");
+            }
             Long areaId = Long.parseLong(areaIdStr.trim());
             Long slotId = Long.parseLong(slotIdStr.trim());
             LocalDateTime start = DateTimeUtil.parseInput(startStr);
@@ -175,6 +188,9 @@ public class CustomerServlet extends HttpServlet {
             handleBookingForm(request, response, user);
         } catch (SQLException e) {
             request.setAttribute("errorMessage", "Database error occurred while saving your booking. Please try again.");
+            handleBookingForm(request, response, user);
+        } catch (Exception e) {
+            request.setAttribute("errorMessage", "Error: " + e.getMessage());
             handleBookingForm(request, response, user);
         }
     }

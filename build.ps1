@@ -31,13 +31,13 @@ New-Item -ItemType Directory -Force -Path "lib" | Out-Null
 New-Item -ItemType Directory -Force -Path "src/main/webapp/WEB-INF/lib" | Out-Null
 
 $depList = @(
-    @{ url='https://repo1.maven.org/maven2/com/mysql/mysql-connector-j/8.3.0/mysql-connector-j-8.3.0.jar'; file='lib/mysql-connector-j-8.3.0.jar'; web=true },
-    @{ url='https://repo1.maven.org/maven2/org/mindrot/jbcrypt/0.4/jbcrypt-0.4.jar'; file='lib/jbcrypt-0.4.jar'; web=true },
-    @{ url='https://repo1.maven.org/maven2/com/sun/mail/jakarta.mail/2.0.1/jakarta.mail-2.0.1.jar'; file='lib/jakarta.mail-2.0.1.jar'; web=true },
-    @{ url='https://repo1.maven.org/maven2/jakarta/activation/jakarta.activation-api/2.1.2/jakarta.activation-api-2.1.2.jar'; file='lib/jakarta.activation-api-2.1.2.jar'; web=true },
-    @{ url='https://repo1.maven.org/maven2/jakarta/servlet/jsp/jstl/jakarta.servlet.jsp.jstl-api/3.0.0/jakarta.servlet.jsp.jstl-api-3.0.0.jar'; file='lib/jakarta.servlet.jsp.jstl-api-3.0.0.jar'; web=true },
-    @{ url='https://repo1.maven.org/maven2/org/glassfish/web/jakarta.servlet.jsp.jstl/3.0.1/jakarta.servlet.jsp.jstl-3.0.1.jar'; file='lib/jakarta.servlet.jsp.jstl-3.0.1.jar'; web=true },
-    @{ url='https://repo1.maven.org/maven2/org/junit/platform/junit-platform-console-standalone/1.10.2/junit-platform-console-standalone-1.10.2.jar'; file='lib/junit-platform-console-standalone-1.10.2.jar'; web=false }
+    @{ url='https://repo1.maven.org/maven2/com/mysql/mysql-connector-j/8.3.0/mysql-connector-j-8.3.0.jar'; file='lib/mysql-connector-j-8.3.0.jar'; web=$true },
+    @{ url='https://repo1.maven.org/maven2/org/mindrot/jbcrypt/0.4/jbcrypt-0.4.jar'; file='lib/jbcrypt-0.4.jar'; web=$true },
+    @{ url='https://repo1.maven.org/maven2/com/sun/mail/jakarta.mail/2.0.1/jakarta.mail-2.0.1.jar'; file='lib/jakarta.mail-2.0.1.jar'; web=$true },
+    @{ url='https://repo1.maven.org/maven2/jakarta/activation/jakarta.activation-api/2.1.2/jakarta.activation-api-2.1.2.jar'; file='lib/jakarta.activation-api-2.1.2.jar'; web=$true },
+    @{ url='https://repo1.maven.org/maven2/jakarta/servlet/jsp/jstl/jakarta.servlet.jsp.jstl-api/3.0.0/jakarta.servlet.jsp.jstl-api-3.0.0.jar'; file='lib/jakarta.servlet.jsp.jstl-api-3.0.0.jar'; web=$true },
+    @{ url='https://repo1.maven.org/maven2/org/glassfish/web/jakarta.servlet.jsp.jstl/3.0.1/jakarta.servlet.jsp.jstl-3.0.1.jar'; file='lib/jakarta.servlet.jsp.jstl-3.0.1.jar'; web=$true },
+    @{ url='https://repo1.maven.org/maven2/org/junit/platform/junit-platform-console-standalone/1.10.2/junit-platform-console-standalone-1.10.2.jar'; file='lib/junit-platform-console-standalone-1.10.2.jar'; web=$false }
 )
 
 foreach ($dep in $depList) {
