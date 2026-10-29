@@ -67,6 +67,16 @@ public class BookingService {
      */
     public Booking createBooking(Long userId, Long areaId, Long slotId, LocalDateTime start, LocalDateTime end)
             throws SQLException {
+        return createBooking(userId, areaId, slotId, start, end, Booking.PaymentStatus.PENDING, "UPI_QR", null);
+    }
+
+    /**
+     * Creates a new parking reservation within an atomic database transaction.
+     * Guarantees overlap prevention, server-side fee calculation, payment state capture, and notification dispatch.
+     */
+    public Booking createBooking(Long userId, Long areaId, Long slotId, LocalDateTime start, LocalDateTime end,
+                                 Booking.PaymentStatus paymentStatus, String paymentMethod, String paymentReference)
+            throws SQLException {
 
         // 1. Validate Interval
         String intervalError = ValidationUtil.validateBookingInterval(start, end);
@@ -100,6 +110,12 @@ public class BookingService {
         booking.setDurationHours(durationHours);
         booking.setCalculatedFee(calculatedFee);
         booking.setBookingStatus(Booking.BookingStatus.CONFIRMED);
+        booking.setPaymentStatus(paymentStatus != null ? paymentStatus : Booking.PaymentStatus.PENDING);
+        booking.setPaymentMethod(paymentMethod != null && !paymentMethod.trim().isEmpty() ? paymentMethod.trim() : "UPI_QR");
+        booking.setPaymentReference(paymentReference != null && !paymentReference.trim().isEmpty() ? paymentReference.trim() : null);
+        if (Booking.PaymentStatus.PAID.equals(paymentStatus)) {
+            booking.setPaidAt(LocalDateTime.now());
+        }
 
         // 4. Atomic Transaction with Concurrency Lock
         try (Connection conn = DatabaseConnection.getConnection()) {
@@ -201,6 +217,29 @@ public class BookingService {
 
     public DashboardStats getProviderDashboardStats(Long providerId) {
         return bookingDao.getProviderDashboardStats(providerId);
+    }
+
+    /**
+     * Searches customer bookings for a specific provider by customer name, email, phone, or booking ID.
+     * Enforces provider isolation so providers only see bookings from their own facilities.
+     */
+    public List<Booking> searchProviderCustomers(Long providerId, String keyword) {
+        if (providerId == null || keyword == null || keyword.trim().isEmpty()) {
+            return Collections.emptyList();
+        }
+        return bookingDao.searchProviderBookings(providerId, keyword);
+    }
+
+    /**
+     * Updates payment status (e.g. manual verification workflow) with provider ownership verification.
+     */
+    public boolean updatePaymentStatus(Long bookingId, Long providerId, Booking.PaymentStatus newStatus, String reference) {
+        if (bookingId == null || newStatus == null) return false;
+        boolean updated = bookingDao.updatePaymentStatus(bookingId, providerId, newStatus, reference);
+        if (updated) {
+            LOGGER.info("Payment status for booking ID " + bookingId + " updated to " + newStatus + " by provider " + providerId);
+        }
+        return updated;
     }
 
     private String generateBookingReference() {

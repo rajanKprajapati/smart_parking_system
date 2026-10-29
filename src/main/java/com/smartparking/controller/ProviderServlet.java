@@ -31,6 +31,7 @@ import java.util.List;
         "/provider/slots",
         "/provider/bookings",
         "/provider/booking-details",
+        "/provider/verify-payment",
         "/provider/profile",
         "/provider/notifications"
 })
@@ -90,6 +91,9 @@ public class ProviderServlet extends HttpServlet {
             case "/provider/slots":
                 handleSlotsPost(request, response, user);
                 break;
+            case "/provider/verify-payment":
+                handleVerifyPayment(request, response, user);
+                break;
             case "/provider/profile":
                 handleProfilePost(request, response, user);
                 break;
@@ -105,6 +109,13 @@ public class ProviderServlet extends HttpServlet {
         List<Booking> recentBookings = bookingService.getProviderBookings(user.getUserId(), "ALL");
         if (recentBookings.size() > 5) {
             recentBookings = recentBookings.subList(0, 5);
+        }
+
+        String query = request.getParameter("query");
+        if (query != null && !query.trim().isEmpty()) {
+            List<Booking> searchResults = bookingService.searchProviderCustomers(user.getUserId(), query.trim());
+            request.setAttribute("searchQuery", query.trim());
+            request.setAttribute("searchResults", searchResults);
         }
 
         request.setAttribute("stats", stats);
@@ -329,6 +340,29 @@ public class ProviderServlet extends HttpServlet {
         }
 
         handleProfileGet(request, response, user);
+    }
+
+    private void handleVerifyPayment(HttpServletRequest request, HttpServletResponse response, User user)
+            throws ServletException, IOException {
+        String bookingIdStr = request.getParameter("bookingId");
+        String action = request.getParameter("action"); // "approve" or "reject"
+        String reference = request.getParameter("paymentReference");
+
+        if (bookingIdStr != null && !bookingIdStr.trim().isEmpty() && action != null) {
+            try {
+                Long bookingId = Long.parseLong(bookingIdStr.trim());
+                Booking.PaymentStatus newStatus = "approve".equalsIgnoreCase(action)
+                        ? Booking.PaymentStatus.PAID
+                        : Booking.PaymentStatus.FAILED;
+
+                boolean ok = bookingService.updatePaymentStatus(bookingId, user.getUserId(), newStatus, reference);
+                if (ok) {
+                    response.sendRedirect(request.getContextPath() + "/provider/booking-details?id=" + bookingId + "&paymentUpdated=true");
+                    return;
+                }
+            } catch (Exception ignored) {}
+        }
+        response.sendRedirect(request.getContextPath() + "/provider/bookings");
     }
 
     private void handleNotifications(HttpServletRequest request, HttpServletResponse response, User user)

@@ -103,7 +103,7 @@
 
                     <div class="d-grid gap-2">
                         <button type="submit" class="btn btn-primary btn-lg fw-semibold rounded-3 shadow-sm py-3">
-                            <i class="bi bi-check2-circle me-1"></i>Confirm & Save Reservation
+                            <i class="bi bi-qr-code-scan me-1"></i>Proceed to QR Payment & Confirmation
                         </button>
                         <a href="${pageContext.request.contextPath}/parking-details?id=${area.parkingAreaId}"
                            class="btn btn-outline-secondary">

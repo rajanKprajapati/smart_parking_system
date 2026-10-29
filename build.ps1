@@ -87,7 +87,7 @@ $testRunCp = "target/classes;target/test-classes;$allJars;$tomcatLib\servlet-api
 
 & $java -jar "lib/junit-platform-console-standalone-1.10.2.jar" execute --class-path $testRunCp --scan-class-path --fail-if-no-tests
 if ($LASTEXITCODE -ne 0) { throw "Automated tests failed." }
-Write-Host " All 22 automated tests passed." -ForegroundColor Green
+Write-Host " All automated unit tests passed successfully." -ForegroundColor Green
 
 # 7. Assemble WAR File
 Write-Host "[5/5] Packaging smart-parking.war..." -ForegroundColor Yellow

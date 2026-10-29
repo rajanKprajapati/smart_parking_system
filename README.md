@@ -5,7 +5,7 @@
 [![Jakarta EE](https://img.shields.io/badge/Jakarta%20EE-10%20(Servlet%206.0)-purple.svg)](https://jakarta.ee/)
 [![MySQL](https://img.shields.io/badge/MySQL-8.0.44-00758F.svg)](https://www.mysql.com/)
 [![Bootstrap](https://img.shields.io/badge/Bootstrap-5.3.3-7952B3.svg)](https://getbootstrap.com/)
-[![Build](https://img.shields.io/badge/Build-Passing%20(22%2F22%20Tests)-brightgreen.svg)]()
+[![Build](https://img.shields.io/badge/Build-Passing%20(30%2F30%20Tests)-brightgreen.svg)]()
 
 ---
 
@@ -41,9 +41,11 @@ Drivers in urban areas frequently waste time and fuel cruising through busy stre
 * Browse and search parking facilities by name, city location, price per hour, and vehicle compatibility.
 * Real-time slot availability checking across custom arrival and departure intervals.
 * Dynamic server-side parking fee estimation (minimum 30 minutes billing policy).
+* Dynamic UPI QR Code Payment: Real-time SVG QR code generated with calculated booking fee, payee VPA, and merchant details; direct UPI app deep-linking for mobile devices.
+* Secure Payment State Tracking: Captures UPI UTR reference; initializes payment in `PENDING` state until verified by the merchant ledger.
 * Conflict-free slot booking with unique alphanumeric references (`BK-YYYYMMDD-XXXX`).
-* Printable reservation confirmation receipt with slot identifiers and timestamps.
-* Comprehensive booking history segmented into status tabs: `ALL`, `CONFIRMED`, `COMPLETED`, `EXPIRED`, `CANCELLED`.
+* Printable reservation confirmation receipt with slot identifiers, timestamps, and payment audit details.
+* Comprehensive booking history segmented into status tabs with live payment status badges (`PAID`, `PENDING`, `FAILED`).
 * Self-service reservation cancellation for eligible upcoming bookings (instantly releases the slot).
 * Notification center displaying logs of booking confirmation and expiry alerts.
 * Profile management and secure password change.
@@ -51,6 +53,8 @@ Drivers in urban areas frequently waste time and fuel cruising through busy stre
 ### Parking Provider Portal
 * Dedicated provider registration and authenticated dashboard.
 * Real-time business analytics: Total Slots, Available Slots, Active Parked Vehicles, Upcoming Bookings, Completed Bookings, Expired Bookings, Cancelled Bookings, and Total Eligible Booking Value.
+* Customer Search & Lookup: Provider dashboard search allowing providers to query reservations by Customer Name, Email, Phone Number, or Booking Reference/ID with strict provider data isolation.
+* Payment Audit & Manual Verification: Audit customer UPI transaction references (UTR) and verify/mark payments as `PAID` or `FAILED`.
 * Facility management: Create new parking areas, modify pricing/hours/location, toggle active/inactive status.
 * Bay / Slot management: Add custom bay IDs (e.g., `A-101`, `EV-01`), assign vehicle types (`CAR`, `SUV`, `EV`, `BIKE`, `ANY`), toggle active status.
 * Customer booking oversight: Review all reservations placed across provider facilities with customer contact details and booking audit trails.
@@ -285,7 +289,7 @@ smart_parking_system/
 1. **`users`**: Stores user credentials, phone numbers, roles (`CUSTOMER`, `PROVIDER`, `ADMIN`), and account statuses (`ACTIVE`, `SUSPENDED`).
 2. **`parking_areas`**: Stores facilities owned by providers with price per hour, location, hours, and status. Foreign key to `users.user_id`.
 3. **`parking_slots`**: Individual bays under a parking area with vehicle type and status. Composite unique key `(parking_area_id, slot_number)` prevents duplicate slot numbers.
-4. **`bookings`**: Customer reservations with unique reference, foreign keys to user, parking area, and slot. Start and end times, duration, calculated fee, and status (`CONFIRMED`, `COMPLETED`, `CANCELLED`, `EXPIRED`).
+4. **`bookings`**: Customer reservations with unique reference, foreign keys to user, parking area, and slot. Start and end times, duration, calculated fee, lifecycle status (`CONFIRMED`, `COMPLETED`, `CANCELLED`, `EXPIRED`), and payment audit fields (`payment_status` ['PENDING', 'PAID', 'FAILED'], `payment_method`, `payment_reference`, `paid_at`).
 5. **`notifications`**: Outbound email and SMS dispatches with delivery status (`SENT`, `SIMULATED`, `FAILED`, `RETRYING`), attempt counts, timestamps, and error summaries. Composite unique key `(booking_id, recipient_user_id, channel, notification_type)` prevents duplicate alerts.
 
 ---
@@ -566,7 +570,20 @@ $cp = "target/classes;target/test-classes;$jars;C:\apache-tomcat-10.1.59\lib\ser
 
 ---
 
-## 28. Security Considerations
+## 28. UPI QR Payment and Provider Verification Workflow
+
+### Payment Architecture
+1. **Dynamic QR Code Generation**: Pure Java QR Code generator (`QrCodeUtil`) encodes RFC-compliant UPI payment intent URIs into crisp, scalable SVG images with zero external network dependencies.
+2. **Payment State Separation**:
+   * `PENDING`: Initial status upon customer reservation; indicates payment intent submitted with a recorded UTR transaction reference, awaiting merchant ledger reconciliation.
+   * `PAID`: Confirmed upon manual provider audit or bank settlement.
+   * `FAILED`: Marked if the driver fails to transfer funds or the transaction reference is invalid.
+3. **Manual Verification Workflow**: The parking provider audits customer transaction references in the Provider Portal (`/provider/booking-details?id=...`) and clicks "Verify & Mark Paid" or "Mark Failed".
+4. **Automated Gateway Integration Options**: To replace manual ledger reconciliation with real-time automatic confirmation, parking operators can configure webhook endpoints connected to a certified Payment Aggregator (e.g., Razorpay, Cashfree, or Paytm UPI Webhook API).
+
+---
+
+## 29. Security Considerations
 
 * **Password Protection**: Passwords are never stored in plain text. Hashed using BCrypt with 10 salt rounds.
 * **SQL Injection Prevention**: All queries use parameterized `PreparedStatement`. No string concatenation in SQL.

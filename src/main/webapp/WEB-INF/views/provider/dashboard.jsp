@@ -162,6 +162,136 @@
         </span>
     </div>
 
+    <!-- Customer Search Section (Feature 2) -->
+    <div class="card p-4 border-0 shadow-sm sp-card mb-4" id="customer-search-section">
+        <div class="d-flex flex-wrap justify-content-between align-items-center mb-3">
+            <div>
+                <h5 class="fw-bold mb-1">
+                    <i class="bi bi-search text-primary me-2"></i>Search Customers & Bookings
+                </h5>
+                <p class="text-muted small mb-0">
+                    Search driver reservations by customer name, email address, phone number, or booking reference/ID.
+                </p>
+            </div>
+            <c:if test="${not empty searchQuery}">
+                <a href="${pageContext.request.contextPath}/provider/dashboard" class="btn btn-sm btn-outline-secondary mt-2 mt-md-0">
+                    <i class="bi bi-x-circle me-1"></i>Clear Search
+                </a>
+            </c:if>
+        </div>
+
+        <form action="${pageContext.request.contextPath}/provider/dashboard#customer-search-section" method="get" class="mb-3">
+            <div class="input-group shadow-sm">
+                <span class="input-group-text bg-white border-end-0 text-muted"><i class="bi bi-person-search"></i></span>
+                <input type="text" name="query" value="${searchQuery}" class="form-control border-start-0"
+                       placeholder="Enter customer name, email (e.g. customer@example.com), phone (+1-555...), or booking ID..."
+                       aria-label="Search Customers" required>
+                <button type="submit" class="btn btn-primary px-4 fw-semibold">
+                    <i class="bi bi-search me-1"></i>Search
+                </button>
+            </div>
+            <div class="form-text small text-muted mt-1">
+                <i class="bi bi-shield-check text-success me-1"></i>Restricted to your managed facilities only. Customer passwords and sensitive credentials are never exposed.
+            </div>
+        </form>
+
+        <!-- Search Results Table -->
+        <c:if test="${searchQuery != null}">
+            <div class="mt-3">
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <h6 class="fw-bold text-dark m-0">
+                        Matching Results for <span class="text-primary font-monospace">"${searchQuery}"</span>
+                        <span class="badge bg-secondary rounded-pill ms-2">${searchResults != null ? searchResults.size() : 0} found</span>
+                    </h6>
+                </div>
+
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead class="table-light small text-muted text-uppercase">
+                            <tr>
+                                <th>Booking ID / Ref</th>
+                                <th>Customer Name</th>
+                                <th>Customer Email</th>
+                                <th>Phone Number</th>
+                                <th>Facility & Slot</th>
+                                <th>Schedule</th>
+                                <th>Booking Status</th>
+                                <th>Payment Status</th>
+                                <th>Amount</th>
+                                <th class="text-end">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <c:choose>
+                                <c:when test="${not empty searchResults}">
+                                    <c:forEach var="sb" items="${searchResults}">
+                                        <tr>
+                                            <td>
+                                                <span class="fw-bold font-monospace text-dark">#${sb.bookingId}</span>
+                                                <div class="small text-muted font-monospace">${sb.bookingReference}</div>
+                                            </td>
+                                            <td>
+                                                <strong class="text-dark">${sb.customerName}</strong>
+                                            </td>
+                                            <td>
+                                                <a href="mailto:${sb.customerEmail}" class="text-decoration-none small">${sb.customerEmail}</a>
+                                            </td>
+                                            <td>
+                                                <span class="small text-muted">${not empty sb.customerPhone ? sb.customerPhone : 'N/A'}</span>
+                                            </td>
+                                            <td>
+                                                <strong class="d-block text-dark">${sb.parkingName}</strong>
+                                                <span class="badge bg-dark small">Slot ${sb.slotNumber}</span>
+                                            </td>
+                                            <td class="small">
+                                                <div><span class="text-muted">In:</span> ${sb.startTime}</div>
+                                                <div><span class="text-muted">Out:</span> ${sb.endTime}</div>
+                                            </td>
+                                            <td>
+                                                <c:choose>
+                                                    <c:when test="${sb.confirmed}"><span class="badge badge-confirmed">CONFIRMED</span></c:when>
+                                                    <c:when test="${sb.cancelled}"><span class="badge badge-cancelled">CANCELLED</span></c:when>
+                                                    <c:when test="${sb.completed}"><span class="badge badge-completed">COMPLETED</span></c:when>
+                                                    <c:when test="${sb.expired}"><span class="badge badge-expired">EXPIRED</span></c:when>
+                                                </c:choose>
+                                            </td>
+                                            <td>
+                                                <c:choose>
+                                                    <c:when test="${sb.paid}"><span class="badge bg-success">PAID</span></c:when>
+                                                    <c:when test="${sb.paymentFailed}"><span class="badge bg-danger">FAILED</span></c:when>
+                                                    <c:otherwise><span class="badge bg-warning text-dark">PENDING</span></c:otherwise>
+                                                </c:choose>
+                                                <c:if test="${not empty sb.paymentReference}">
+                                                    <div class="small text-muted font-monospace" style="font-size: 0.72rem;">${sb.paymentReference}</div>
+                                                </c:if>
+                                            </td>
+                                            <td class="fw-bold text-success">$${sb.calculatedFee}</td>
+                                            <td class="text-end">
+                                                <a href="${pageContext.request.contextPath}/provider/booking-details?id=${sb.bookingId}"
+                                                   class="btn btn-sm btn-outline-primary" title="View Full Details & Payment Verification">
+                                                    <i class="bi bi-eye me-1"></i>View
+                                                </a>
+                                            </td>
+                                        </tr>
+                                    </c:forEach>
+                                </c:when>
+                                <c:otherwise>
+                                    <tr>
+                                        <td colspan="10" class="text-center py-4 text-muted">
+                                            <i class="bi bi-person-x fs-3 d-block text-secondary mb-2"></i>
+                                            No customer reservations matched your search query <strong>"${searchQuery}"</strong> for your facilities.
+                                            <div class="small text-muted mt-1">Please verify the name, email address, phone number, or booking reference.</div>
+                                        </td>
+                                    </tr>
+                                </c:otherwise>
+                            </c:choose>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </c:if>
+    </div>
+
     <!-- Recent Customer Bookings -->
     <div class="card p-4 border-0 shadow-sm sp-card">
         <div class="d-flex justify-content-between align-items-center mb-3">
@@ -181,6 +311,7 @@
                         <th>Schedule</th>
                         <th>Fee</th>
                         <th>Status</th>
+                        <th>Payment</th>
                         <th class="text-end">Details</th>
                     </tr>
                 </thead>
@@ -213,6 +344,13 @@
                                             <c:when test="${b.expired}"><span class="badge badge-expired">EXPIRED</span></c:when>
                                         </c:choose>
                                     </td>
+                                    <td>
+                                        <c:choose>
+                                            <c:when test="${b.paid}"><span class="badge bg-success">PAID</span></c:when>
+                                            <c:when test="${b.paymentFailed}"><span class="badge bg-danger">FAILED</span></c:when>
+                                            <c:otherwise><span class="badge bg-warning text-dark">PENDING</span></c:otherwise>
+                                        </c:choose>
+                                    </td>
                                     <td class="text-end">
                                         <a href="${pageContext.request.contextPath}/provider/booking-details?id=${b.bookingId}"
                                            class="btn btn-sm btn-outline-primary" title="View Full Details">
@@ -224,7 +362,7 @@
                         </c:when>
                         <c:otherwise>
                             <tr>
-                                <td colspan="7" class="text-center py-4 text-muted">
+                                <td colspan="8" class="text-center py-4 text-muted">
                                     No customer bookings recorded for your parking areas yet.
                                 </td>
                             </tr>

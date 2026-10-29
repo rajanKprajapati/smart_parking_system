@@ -67,7 +67,8 @@
                         <th>Arrival (Start)</th>
                         <th>Departure (End)</th>
                         <th>Est. Fee</th>
-                        <th>Status</th>
+                        <th>Booking Status</th>
+                        <th>Payment</th>
                         <th class="text-end">Actions</th>
                     </tr>
                 </thead>
@@ -103,6 +104,22 @@
                                         </c:choose>
                                         <c:if test="${b.cancelled && b.cancellationReason != null}">
                                             <div class="small text-muted fst-italic mt-1">${b.cancellationReason}</div>
+                                        </c:if>
+                                    </td>
+                                    <td>
+                                        <c:choose>
+                                            <c:when test="${b.paid}">
+                                                <span class="badge bg-success"><i class="bi bi-check-circle me-1"></i>PAID</span>
+                                            </c:when>
+                                            <c:when test="${b.paymentFailed}">
+                                                <span class="badge bg-danger"><i class="bi bi-x-circle me-1"></i>FAILED</span>
+                                            </c:when>
+                                            <c:otherwise>
+                                                <span class="badge bg-warning text-dark"><i class="bi bi-clock-history me-1"></i>PENDING</span>
+                                            </c:otherwise>
+                                        </c:choose>
+                                        <c:if test="${not empty b.paymentReference}">
+                                            <div class="small text-muted font-monospace mt-1" style="font-size: 0.75rem;">${b.paymentReference}</div>
                                         </c:if>
                                     </td>
                                     <td class="text-end">

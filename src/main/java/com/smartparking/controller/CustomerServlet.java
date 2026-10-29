@@ -1,5 +1,6 @@
 package com.smartparking.controller;
 
+import com.smartparking.config.AppConfig;
 import com.smartparking.model.Booking;
 import com.smartparking.model.Notification;
 import com.smartparking.model.ParkingArea;
@@ -11,6 +12,7 @@ import com.smartparking.service.NotificationService;
 import com.smartparking.service.ParkingService;
 import com.smartparking.util.DateTimeUtil;
 import com.smartparking.util.FeeCalculator;
+import com.smartparking.util.QrCodeUtil;
 import com.smartparking.util.ValidationUtil;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.annotation.WebServlet;
@@ -31,6 +33,8 @@ import java.util.List;
 @WebServlet(name = "CustomerServlet", urlPatterns = {
         "/customer/dashboard",
         "/customer/book",
+        "/customer/payment",
+        "/customer/confirm-booking",
         "/customer/confirmation",
         "/customer/bookings",
         "/customer/cancel-booking",
@@ -57,6 +61,9 @@ public class CustomerServlet extends HttpServlet {
                 break;
             case "/customer/book":
                 handleBookingForm(request, response, user);
+                break;
+            case "/customer/payment":
+                handlePaymentPage(request, response, user);
                 break;
             case "/customer/confirmation":
                 handleConfirmation(request, response, user);
@@ -85,7 +92,11 @@ public class CustomerServlet extends HttpServlet {
 
         switch (path) {
             case "/customer/book":
-                handleBookingSubmit(request, response, user);
+            case "/customer/payment":
+                handlePaymentPage(request, response, user);
+                break;
+            case "/customer/confirm-booking":
+                handleConfirmBooking(request, response, user);
                 break;
             case "/customer/cancel-booking":
                 handleBookingCancel(request, response, user);
@@ -162,7 +173,7 @@ public class CustomerServlet extends HttpServlet {
         request.getRequestDispatcher("/WEB-INF/views/customer/booking-form.jsp").forward(request, response);
     }
 
-    private void handleBookingSubmit(HttpServletRequest request, HttpServletResponse response, User user)
+    private void handlePaymentPage(HttpServletRequest request, HttpServletResponse response, User user)
             throws ServletException, IOException {
         String areaIdStr = request.getParameter("areaId");
         String slotIdStr = request.getParameter("slotId");
@@ -181,17 +192,108 @@ public class CustomerServlet extends HttpServlet {
             LocalDateTime start = DateTimeUtil.parseInput(startStr);
             LocalDateTime end = DateTimeUtil.parseInput(endStr);
 
-            Booking booking = bookingService.createBooking(user.getUserId(), areaId, slotId, start, end);
-            response.sendRedirect(request.getContextPath() + "/customer/confirmation?ref=" + booking.getBookingReference());
+            if (start == null || end == null) {
+                throw new IllegalArgumentException("Both arrival and departure dates/times must be provided.");
+            }
+
+            String intervalError = ValidationUtil.validateBookingInterval(start, end);
+            if (intervalError != null) {
+                throw new IllegalArgumentException(intervalError);
+            }
+
+            ParkingArea area = parkingService.getAreaById(areaId);
+            if (area == null || !area.isActive()) {
+                throw new IllegalArgumentException("Selected parking area is inactive or unavailable.");
+            }
+
+            List<ParkingSlot> areaSlots = parkingService.getAreaSlots(areaId);
+            ParkingSlot selectedSlot = areaSlots.stream()
+                    .filter(s -> s.getSlotId().equals(slotId))
+                    .findFirst()
+                    .orElse(null);
+
+            if (selectedSlot == null || !selectedSlot.isActive()) {
+                throw new IllegalArgumentException("Selected parking slot is invalid or inactive.");
+            }
+
+            // Check if slot has conflicting reservation in interval
+            List<ParkingSlot> available = parkingService.getAvailableSlots(areaId, start, end, null);
+            boolean isSlotAvailable = available.stream().anyMatch(s -> s.getSlotId().equals(slotId));
+            if (!isSlotAvailable) {
+                throw new IllegalArgumentException("Slot " + selectedSlot.getSlotNumber() + " is already reserved for the chosen time window. Please select another slot.");
+            }
+
+            BigDecimal durationHours = FeeCalculator.calculateDurationHours(start, end);
+            BigDecimal totalFee = FeeCalculator.calculateFee(start, end, area.getPricePerHour());
+
+            String payeeVpa = AppConfig.getPaymentUpiVpa();
+            String payeeName = AppConfig.getPaymentPayeeName();
+            String upiUri = QrCodeUtil.buildUpiUri(payeeVpa, payeeName, totalFee, null, "Parking Bay " + selectedSlot.getSlotNumber());
+            String qrSvg = QrCodeUtil.generateQrSvg(upiUri, 220);
+
+            request.setAttribute("area", area);
+            request.setAttribute("slot", selectedSlot);
+            request.setAttribute("startTime", startStr);
+            request.setAttribute("endTime", endStr);
+            request.setAttribute("formattedStart", DateTimeUtil.formatDisplay(start));
+            request.setAttribute("formattedEnd", DateTimeUtil.formatDisplay(end));
+            request.setAttribute("durationHours", durationHours);
+            request.setAttribute("totalFee", totalFee);
+            request.setAttribute("payeeVpa", payeeVpa);
+            request.setAttribute("payeeName", payeeName);
+            request.setAttribute("currency", AppConfig.getPaymentCurrency());
+            request.setAttribute("upiUri", upiUri);
+            request.setAttribute("qrSvg", qrSvg);
+
+            request.getRequestDispatcher("/WEB-INF/views/customer/payment.jsp").forward(request, response);
         } catch (IllegalArgumentException e) {
             request.setAttribute("errorMessage", e.getMessage());
             handleBookingForm(request, response, user);
-        } catch (SQLException e) {
-            request.setAttribute("errorMessage", "Database error occurred while saving your booking. Please try again.");
-            handleBookingForm(request, response, user);
         } catch (Exception e) {
-            request.setAttribute("errorMessage", "Error: " + e.getMessage());
+            request.setAttribute("errorMessage", "Error preparing payment page: " + e.getMessage());
             handleBookingForm(request, response, user);
+        }
+    }
+
+    private void handleConfirmBooking(HttpServletRequest request, HttpServletResponse response, User user)
+            throws ServletException, IOException {
+        String areaIdStr = request.getParameter("areaId");
+        String slotIdStr = request.getParameter("slotId");
+        String startStr = request.getParameter("startTime");
+        String endStr = request.getParameter("endTime");
+        String paymentRef = request.getParameter("paymentReference");
+        String paymentMethod = request.getParameter("paymentMethod");
+        if (paymentMethod == null || paymentMethod.trim().isEmpty()) {
+            paymentMethod = "UPI_QR";
+        }
+
+        try {
+            if (areaIdStr == null || slotIdStr == null || startStr == null || endStr == null) {
+                throw new IllegalArgumentException("Booking details are missing. Please restart the reservation.");
+            }
+            Long areaId = Long.parseLong(areaIdStr.trim());
+            Long slotId = Long.parseLong(slotIdStr.trim());
+            LocalDateTime start = DateTimeUtil.parseInput(startStr);
+            LocalDateTime end = DateTimeUtil.parseInput(endStr);
+
+            // Per security & business rules: payment status is initialized as PENDING until verified by merchant/gateway.
+            Booking.PaymentStatus initialPaymentStatus = Booking.PaymentStatus.PENDING;
+
+            Booking booking = bookingService.createBooking(
+                    user.getUserId(), areaId, slotId, start, end,
+                    initialPaymentStatus, paymentMethod, paymentRef
+            );
+
+            response.sendRedirect(request.getContextPath() + "/customer/confirmation?ref=" + booking.getBookingReference());
+        } catch (IllegalArgumentException e) {
+            request.setAttribute("errorMessage", e.getMessage());
+            handlePaymentPage(request, response, user);
+        } catch (SQLException e) {
+            request.setAttribute("errorMessage", "Database transaction failed. The slot may have just been booked by another driver.");
+            handlePaymentPage(request, response, user);
+        } catch (Exception e) {
+            request.setAttribute("errorMessage", "Unexpected error confirming booking: " + e.getMessage());
+            handlePaymentPage(request, response, user);
         }
     }
 

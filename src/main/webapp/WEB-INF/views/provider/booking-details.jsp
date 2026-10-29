@@ -16,6 +16,12 @@
 
     <div class="row justify-content-center">
         <div class="col-lg-8">
+            <c:if test="${param.paymentUpdated == 'true'}">
+                <div class="alert alert-success alert-dismissible fade show shadow-sm" role="alert">
+                    <i class="bi bi-check-circle-fill me-2"></i>Payment status and ledger reference updated successfully.
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+            </c:if>
             <div class="card p-4 p-md-5 border-0 shadow-sm sp-card rounded-4">
                 <div class="d-flex justify-content-between align-items-center border-bottom pb-3 mb-4">
                     <div>
@@ -83,6 +89,59 @@
                 <div class="alert alert-warning small mb-4">
                     <i class="bi bi-exclamation-triangle-fill me-1"></i>
                     <strong>System Operational Notice:</strong> A booking reaching its scheduled end time triggers automatic expiry notifications to driver and provider. It does not certify physical vehicle departure without dedicated ground IoT hardware or on-site barrier confirmation.
+                </div>
+
+                <!-- Payment Audit & Verification Workflow Section -->
+                <div class="card border rounded-3 p-3 mb-4 bg-light">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h6 class="fw-bold text-uppercase text-muted small m-0">
+                            <i class="bi bi-cash-coin text-primary me-1"></i>Payment Audit & Manual Verification
+                        </h6>
+                        <div>
+                            <c:choose>
+                                <c:when test="${booking.paid}"><span class="badge bg-success fs-6"><i class="bi bi-check-circle me-1"></i>PAID</span></c:when>
+                                <c:when test="${booking.paymentFailed}"><span class="badge bg-danger fs-6"><i class="bi bi-x-circle me-1"></i>FAILED</span></c:when>
+                                <c:otherwise><span class="badge bg-warning text-dark fs-6"><i class="bi bi-clock-history me-1"></i>PENDING VERIFICATION</span></c:otherwise>
+                            </c:choose>
+                        </div>
+                    </div>
+
+                    <div class="row g-2 mb-3">
+                        <div class="col-sm-4">
+                            <span class="small text-muted d-block">Payment Method:</span>
+                            <span class="badge bg-white text-dark border"><i class="bi bi-qr-code me-1"></i>${booking.paymentMethod}</span>
+                        </div>
+                        <div class="col-sm-4">
+                            <span class="small text-muted d-block">UTR / Transaction Reference:</span>
+                            <strong class="font-monospace text-dark">${not empty booking.paymentReference ? booking.paymentReference : 'None provided'}</strong>
+                        </div>
+                        <div class="col-sm-4">
+                            <span class="small text-muted d-block">Paid Timestamp:</span>
+                            <span class="small text-muted">${booking.paidAt != null ? booking.paidAt : 'Not settled yet'}</span>
+                        </div>
+                    </div>
+
+                    <!-- Provider Action Form -->
+                    <form method="post" action="${pageContext.request.contextPath}/provider/verify-payment" class="border-top pt-3">
+                        <input type="hidden" name="csrfToken" value="${csrfToken}">
+                        <input type="hidden" name="bookingId" value="${booking.bookingId}">
+
+                        <div class="row g-2 align-items-center">
+                            <div class="col-md-6">
+                                <label class="form-label small text-muted m-0">Update/Confirm Bank UTR Reference (Optional):</label>
+                                <input type="text" name="paymentReference" value="${booking.paymentReference}"
+                                       class="form-control form-control-sm font-monospace" placeholder="Bank ledger UTR reference...">
+                            </div>
+                            <div class="col-md-6 text-md-end mt-2 mt-md-4">
+                                <button type="submit" name="action" value="approve" class="btn btn-sm btn-success me-1">
+                                    <i class="bi bi-check-circle-fill me-1"></i>Verify & Mark Paid
+                                </button>
+                                <button type="submit" name="action" value="reject" class="btn btn-sm btn-outline-danger">
+                                    <i class="bi bi-x-circle me-1"></i>Mark Failed
+                                </button>
+                            </div>
+                        </div>
+                    </form>
                 </div>
 
                 <div class="text-end">

@@ -64,24 +64,24 @@ INSERT INTO `parking_slots` (`slot_id`, `parking_area_id`, `slot_number`, `vehic
 -- 4. SEED SAMPLE BOOKINGS
 -- ------------------------------------------------------------------------------
 -- Booking 1: Past Completed Booking (Customer 3 @ Area 1, Slot 1)
-INSERT INTO `bookings` (`booking_id`, `booking_reference`, `user_id`, `parking_area_id`, `slot_id`, `start_time`, `end_time`, `duration_hours`, `calculated_fee`, `booking_status`, `created_at`) VALUES
-(1, 'BK-20261020-1001', 3, 1, 1, NOW() - INTERVAL 5 DAY - INTERVAL 4 HOUR, NOW() - INTERVAL 5 DAY, 4.00, 20.00, 'COMPLETED', NOW() - INTERVAL 6 DAY);
+INSERT INTO `bookings` (`booking_id`, `booking_reference`, `user_id`, `parking_area_id`, `slot_id`, `start_time`, `end_time`, `duration_hours`, `calculated_fee`, `booking_status`, `payment_status`, `payment_method`, `payment_reference`, `paid_at`, `created_at`) VALUES
+(1, 'BK-20261020-1001', 3, 1, 1, NOW() - INTERVAL 5 DAY - INTERVAL 4 HOUR, NOW() - INTERVAL 5 DAY, 4.00, 20.00, 'COMPLETED', 'PAID', 'UPI_QR', 'UPI-TXN-982341', NOW() - INTERVAL 5 DAY, NOW() - INTERVAL 6 DAY);
 
 -- Booking 2: Cancelled Booking (Customer 4 @ Area 1, Slot 2)
-INSERT INTO `bookings` (`booking_id`, `booking_reference`, `user_id`, `parking_area_id`, `slot_id`, `start_time`, `end_time`, `duration_hours`, `calculated_fee`, `booking_status`, `cancellation_reason`, `cancelled_at`, `created_at`) VALUES
-(2, 'BK-20261024-1002', 4, 1, 2, NOW() - INTERVAL 2 DAY, NOW() - INTERVAL 2 DAY + INTERVAL 3 HOUR, 3.00, 15.00, 'CANCELLED', 'Travel schedule changed', NOW() - INTERVAL 3 DAY, NOW() - INTERVAL 4 DAY);
+INSERT INTO `bookings` (`booking_id`, `booking_reference`, `user_id`, `parking_area_id`, `slot_id`, `start_time`, `end_time`, `duration_hours`, `calculated_fee`, `booking_status`, `payment_status`, `payment_method`, `payment_reference`, `paid_at`, `cancellation_reason`, `cancelled_at`, `created_at`) VALUES
+(2, 'BK-20261024-1002', 4, 1, 2, NOW() - INTERVAL 2 DAY, NOW() - INTERVAL 2 DAY + INTERVAL 3 HOUR, 3.00, 15.00, 'CANCELLED', 'PAID', 'UPI_QR', 'UPI-TXN-982341', NOW() - INTERVAL 2 DAY, 'Travel schedule changed', NOW() - INTERVAL 3 DAY, NOW() - INTERVAL 4 DAY);
 
 -- Booking 3: Expired Booking (Customer 3 @ Area 2, Slot 7)
-INSERT INTO `bookings` (`booking_id`, `booking_reference`, `user_id`, `parking_area_id`, `slot_id`, `start_time`, `end_time`, `duration_hours`, `calculated_fee`, `booking_status`, `created_at`) VALUES
-(3, 'BK-20261028-1003', 3, 2, 7, NOW() - INTERVAL 6 HOUR, NOW() - INTERVAL 1 HOUR, 5.00, 40.00, 'EXPIRED', NOW() - INTERVAL 1 DAY);
+INSERT INTO `bookings` (`booking_id`, `booking_reference`, `user_id`, `parking_area_id`, `slot_id`, `start_time`, `end_time`, `duration_hours`, `calculated_fee`, `booking_status`, `payment_status`, `payment_method`, `payment_reference`, `created_at`) VALUES
+(3, 'BK-20261028-1003', 3, 2, 7, NOW() - INTERVAL 6 HOUR, NOW() - INTERVAL 1 HOUR, 5.00, 40.00, 'EXPIRED', 'PENDING', 'UPI_QR', 'UPI-TXN-874512', NOW() - INTERVAL 1 DAY);
 
 -- Booking 4: Future Upcoming Booking (Customer 3 @ Area 1, Slot 3)
-INSERT INTO `bookings` (`booking_id`, `booking_reference`, `user_id`, `parking_area_id`, `slot_id`, `start_time`, `end_time`, `duration_hours`, `calculated_fee`, `booking_status`, `created_at`) VALUES
-(4, 'BK-20261030-1004', 3, 1, 3, NOW() + INTERVAL 1 DAY, NOW() + INTERVAL 1 DAY + INTERVAL 2 HOUR, 2.00, 10.00, 'CONFIRMED', NOW() - INTERVAL 2 HOUR);
+INSERT INTO `bookings` (`booking_id`, `booking_reference`, `user_id`, `parking_area_id`, `slot_id`, `start_time`, `end_time`, `duration_hours`, `calculated_fee`, `booking_status`, `payment_status`, `payment_method`, `payment_reference`, `paid_at`, `created_at`) VALUES
+(4, 'BK-20261030-1004', 3, 1, 3, NOW() + INTERVAL 1 DAY, NOW() + INTERVAL 1 DAY + INTERVAL 2 HOUR, 2.00, 10.00, 'CONFIRMED', 'PAID', 'UPI_QR', 'UPI-TXN-554109', NOW() - INTERVAL 2 HOUR, NOW() - INTERVAL 2 HOUR);
 
 -- Booking 5: Future Upcoming Booking (Customer 4 @ Area 3, Slot 11)
-INSERT INTO `bookings` (`booking_id`, `booking_reference`, `user_id`, `parking_area_id`, `slot_id`, `start_time`, `end_time`, `duration_hours`, `calculated_fee`, `booking_status`, `created_at`) VALUES
-(5, 'BK-20261030-1005', 4, 3, 11, NOW() + INTERVAL 2 DAY, NOW() + INTERVAL 2 DAY + INTERVAL 4 HOUR, 4.00, 16.00, 'CONFIRMED', NOW() - INTERVAL 1 HOUR);
+INSERT INTO `bookings` (`booking_id`, `booking_reference`, `user_id`, `parking_area_id`, `slot_id`, `start_time`, `end_time`, `duration_hours`, `calculated_fee`, `booking_status`, `payment_status`, `payment_method`, `payment_reference`, `created_at`) VALUES
+(5, 'BK-20261030-1005', 4, 3, 11, NOW() + INTERVAL 2 DAY, NOW() + INTERVAL 2 DAY + INTERVAL 4 HOUR, 4.00, 16.00, 'CONFIRMED', 'FAILED', 'UPI_QR', 'UPI-FAIL-0012', NOW() - INTERVAL 1 HOUR);
 
 -- ------------------------------------------------------------------------------
 -- 5. SEED NOTIFICATIONS

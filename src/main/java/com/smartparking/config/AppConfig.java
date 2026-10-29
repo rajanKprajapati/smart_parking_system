@@ -182,4 +182,21 @@ public final class AppConfig {
     public static int getNotificationMaxRetries() {
         return getInt("notification.maxRetries", 3);
     }
+
+    // UPI Payment
+    public static String getPaymentUpiVpa() {
+        return get("payment.upi.vpa", "smartparking@upi");
+    }
+
+    public static String getPaymentPayeeName() {
+        return get("payment.upi.payeeName", "Smart Parking Management");
+    }
+
+    public static String getPaymentCurrency() {
+        return get("payment.currency", "INR");
+    }
+
+    public static boolean isPaymentManualVerificationRequired() {
+        return getBoolean("payment.manualVerificationRequired", true);
+    }
 }

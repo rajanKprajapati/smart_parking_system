@@ -55,7 +55,8 @@
                         <th>Arrival (Start)</th>
                         <th>Departure (End)</th>
                         <th>Duration / Fee</th>
-                        <th>Status</th>
+                        <th>Booking Status</th>
+                        <th>Payment</th>
                         <th class="text-end">Details</th>
                     </tr>
                 </thead>
@@ -92,6 +93,16 @@
                                             <c:when test="${b.expired}"><span class="badge badge-expired">EXPIRED</span></c:when>
                                         </c:choose>
                                     </td>
+                                    <td>
+                                        <c:choose>
+                                            <c:when test="${b.paid}"><span class="badge bg-success">PAID</span></c:when>
+                                            <c:when test="${b.paymentFailed}"><span class="badge bg-danger">FAILED</span></c:when>
+                                            <c:otherwise><span class="badge bg-warning text-dark">PENDING</span></c:otherwise>
+                                        </c:choose>
+                                        <c:if test="${not empty b.paymentReference}">
+                                            <div class="small text-muted font-monospace" style="font-size: 0.72rem;">${b.paymentReference}</div>
+                                        </c:if>
+                                    </td>
                                     <td class="text-end">
                                         <a href="${pageContext.request.contextPath}/provider/booking-details?id=${b.bookingId}"
                                            class="btn btn-sm btn-outline-primary" title="View Full Booking Audit">
@@ -103,7 +114,7 @@
                         </c:when>
                         <c:otherwise>
                             <tr>
-                                <td colspan="8" class="text-center py-5 text-muted">
+                                <td colspan="9" class="text-center py-5 text-muted">
                                     <i class="bi bi-inbox display-6 d-block mb-2"></i>
                                     No customer bookings found for the selected status filter.
                                 </td>

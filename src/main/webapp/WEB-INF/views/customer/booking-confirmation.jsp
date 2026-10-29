@@ -58,8 +58,25 @@
                         </div>
 
                         <div class="col-sm-6 text-sm-end">
-                            <span class="text-muted small d-block">Estimated Total Fee</span>
+                            <span class="text-muted small d-block">Total Amount</span>
                             <strong class="fs-4 text-primary">$${booking.calculatedFee}</strong>
+                        </div>
+
+                        <div class="col-12 border-top pt-2"></div>
+
+                        <div class="col-sm-6">
+                            <span class="text-muted small d-block">Payment Method & Status</span>
+                            <span class="badge bg-light text-dark border me-1"><i class="bi bi-qr-code me-1"></i>${booking.paymentMethod}</span>
+                            <c:choose>
+                                <c:when test="${booking.paid}"><span class="badge bg-success">PAID</span></c:when>
+                                <c:when test="${booking.paymentFailed}"><span class="badge bg-danger">FAILED</span></c:when>
+                                <c:otherwise><span class="badge bg-warning text-dark">PENDING VERIFICATION</span></c:otherwise>
+                            </c:choose>
+                        </div>
+
+                        <div class="col-sm-6 text-sm-end">
+                            <span class="text-muted small d-block">Payment Reference / UTR</span>
+                            <span class="font-monospace text-dark">${not empty booking.paymentReference ? booking.paymentReference : 'Awaiting Ledger Match'}</span>
                         </div>
                     </div>
                 </div>

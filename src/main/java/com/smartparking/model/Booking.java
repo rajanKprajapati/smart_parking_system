@@ -15,6 +15,10 @@ public class Booking implements Serializable {
         CONFIRMED, CANCELLED, COMPLETED, EXPIRED
     }
 
+    public enum PaymentStatus {
+        PENDING, PAID, FAILED
+    }
+
     private Long bookingId;
     private String bookingReference;
     private Long userId;
@@ -25,6 +29,10 @@ public class Booking implements Serializable {
     private BigDecimal durationHours;
     private BigDecimal calculatedFee;
     private BookingStatus bookingStatus;
+    private PaymentStatus paymentStatus;
+    private String paymentMethod;
+    private String paymentReference;
+    private LocalDateTime paidAt;
     private String cancellationReason;
     private LocalDateTime cancelledAt;
     private Timestamp createdAt;
@@ -44,6 +52,8 @@ public class Booking implements Serializable {
 
     public Booking() {
         this.bookingStatus = BookingStatus.CONFIRMED;
+        this.paymentStatus = PaymentStatus.PENDING;
+        this.paymentMethod = "UPI_QR";
         this.durationHours = BigDecimal.ZERO;
         this.calculatedFee = BigDecimal.ZERO;
     }
@@ -251,9 +261,53 @@ public class Booking implements Serializable {
         this.providerName = providerName;
     }
 
+    public PaymentStatus getPaymentStatus() {
+        return paymentStatus;
+    }
+
+    public void setPaymentStatus(PaymentStatus paymentStatus) {
+        this.paymentStatus = paymentStatus;
+    }
+
+    public String getPaymentMethod() {
+        return paymentMethod;
+    }
+
+    public void setPaymentMethod(String paymentMethod) {
+        this.paymentMethod = paymentMethod;
+    }
+
+    public String getPaymentReference() {
+        return paymentReference;
+    }
+
+    public void setPaymentReference(String paymentReference) {
+        this.paymentReference = paymentReference;
+    }
+
+    public LocalDateTime getPaidAt() {
+        return paidAt;
+    }
+
+    public void setPaidAt(LocalDateTime paidAt) {
+        this.paidAt = paidAt;
+    }
+
     // Helper status checks
     public boolean isConfirmed() {
         return BookingStatus.CONFIRMED.equals(this.bookingStatus);
+    }
+
+    public boolean isPaid() {
+        return PaymentStatus.PAID.equals(this.paymentStatus);
+    }
+
+    public boolean isPaymentPending() {
+        return PaymentStatus.PENDING.equals(this.paymentStatus);
+    }
+
+    public boolean isPaymentFailed() {
+        return PaymentStatus.FAILED.equals(this.paymentStatus);
     }
 
     public boolean isCancelled() {

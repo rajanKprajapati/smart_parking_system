@@ -27,8 +27,9 @@ public class BookingDao {
 
     public Long createBooking(Booking booking, Connection conn) throws SQLException {
         String sql = "INSERT INTO bookings (booking_reference, user_id, parking_area_id, slot_id, " +
-                     "start_time, end_time, duration_hours, calculated_fee, booking_status) " +
-                     "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)";
+                     "start_time, end_time, duration_hours, calculated_fee, booking_status, " +
+                     "payment_status, payment_method, payment_reference, paid_at) " +
+                     "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
         try (PreparedStatement ps = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
             ps.setString(1, booking.getBookingReference());
             ps.setLong(2, booking.getUserId());
@@ -39,6 +40,10 @@ public class BookingDao {
             ps.setBigDecimal(7, booking.getDurationHours());
             ps.setBigDecimal(8, booking.getCalculatedFee());
             ps.setString(9, booking.getBookingStatus().name());
+            ps.setString(10, booking.getPaymentStatus() != null ? booking.getPaymentStatus().name() : Booking.PaymentStatus.PENDING.name());
+            ps.setString(11, booking.getPaymentMethod() != null ? booking.getPaymentMethod() : "UPI_QR");
+            ps.setString(12, booking.getPaymentReference());
+            ps.setTimestamp(13, booking.getPaidAt() != null ? DateTimeUtil.toTimestamp(booking.getPaidAt()) : null);
 
             int affected = ps.executeUpdate();
             if (affected > 0) {
@@ -307,6 +312,18 @@ public class BookingDao {
         b.setDurationHours(rs.getBigDecimal("duration_hours"));
         b.setCalculatedFee(rs.getBigDecimal("calculated_fee"));
         b.setBookingStatus(rs.getString("booking_status"));
+
+        String pStatus = rs.getString("payment_status");
+        if (pStatus != null) {
+            try {
+                b.setPaymentStatus(Booking.PaymentStatus.valueOf(pStatus.toUpperCase().trim()));
+            } catch (Exception ignored) {}
+        }
+        b.setPaymentMethod(rs.getString("payment_method"));
+        b.setPaymentReference(rs.getString("payment_reference"));
+        Timestamp paidTs = rs.getTimestamp("paid_at");
+        if (paidTs != null) b.setPaidAt(paidTs.toLocalDateTime());
+
         b.setCancellationReason(rs.getString("cancellation_reason"));
 
         Timestamp cancelTs = rs.getTimestamp("cancelled_at");
@@ -329,5 +346,83 @@ public class BookingDao {
         } catch (SQLException ignored) {}
 
         return b;
+    }
+
+    /**
+     * Updates payment status and reference for a booking with strict provider isolation.
+     * If providerId is non-null, verifies the booking belongs to one of the provider's facilities.
+     */
+    public boolean updatePaymentStatus(Long bookingId, Long providerId, Booking.PaymentStatus newStatus, String reference) {
+        if (bookingId == null || newStatus == null) return false;
+
+        StringBuilder sql = new StringBuilder("UPDATE bookings b ");
+        sql.append("JOIN parking_areas pa ON b.parking_area_id = pa.parking_area_id ");
+        sql.append("SET b.payment_status = ?, ");
+        sql.append("    b.payment_reference = COALESCE(?, b.payment_reference), ");
+        sql.append("    b.paid_at = CASE WHEN ? = 'PAID' THEN NOW() ELSE b.paid_at END ");
+        sql.append("WHERE b.booking_id = ? ");
+        if (providerId != null) {
+            sql.append("AND pa.provider_id = ? ");
+        }
+
+        try (Connection conn = DatabaseConnection.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql.toString())) {
+            ps.setString(1, newStatus.name());
+            ps.setString(2, reference != null && !reference.trim().isEmpty() ? reference.trim() : null);
+            ps.setString(3, newStatus.name());
+            ps.setLong(4, bookingId);
+            if (providerId != null) {
+                ps.setLong(5, providerId);
+            }
+            int updated = ps.executeUpdate();
+            return updated > 0;
+        } catch (SQLException e) {
+            LOGGER.log(Level.SEVERE, "Error updating payment status for booking " + bookingId, e);
+            return false;
+        }
+    }
+
+    /**
+     * Searches customer bookings for a specific provider.
+     * Enforces strict provider isolation (pa.provider_id = ?).
+     * Matches customer name, customer email, customer phone number, booking reference, or booking ID.
+     */
+    public List<Booking> searchProviderBookings(Long providerId, String keyword) {
+        List<Booking> list = new ArrayList<>();
+        if (providerId == null || keyword == null || keyword.trim().isEmpty()) {
+            return list;
+        }
+
+        String term = "%" + keyword.trim() + "%";
+        String exactTerm = keyword.trim();
+
+        String sql = baseBookingSelect() +
+                "WHERE pa.provider_id = ? AND (" +
+                "    LOWER(u.full_name) LIKE LOWER(?) OR " +
+                "    LOWER(u.email) LIKE LOWER(?) OR " +
+                "    u.phone_number LIKE ? OR " +
+                "    LOWER(b.booking_reference) LIKE LOWER(?) OR " +
+                "    CAST(b.booking_id AS CHAR) = ?" +
+                ") " +
+                "ORDER BY b.created_at DESC";
+
+        try (Connection conn = DatabaseConnection.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setLong(1, providerId);
+            ps.setString(2, term);
+            ps.setString(3, term);
+            ps.setString(4, term);
+            ps.setString(5, term);
+            ps.setString(6, exactTerm);
+
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    list.add(mapRow(rs));
+                }
+            }
+        } catch (SQLException e) {
+            LOGGER.log(Level.WARNING, "Error searching provider bookings: " + keyword, e);
+        }
+        return list;
     }
 }
